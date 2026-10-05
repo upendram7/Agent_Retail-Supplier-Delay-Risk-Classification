@@ -1,0 +1,39 @@
+[
+  {
+    "supplier_id": "SUP001",
+    "on_time_delivery_rate": 0.82,
+    "average_delay_days": 3.4,
+    "late_order_rate": 0.18,
+    "performance_trend": "DETERIORATING",
+    "reliability_score": 0.71,
+    "risk_factors": [
+      "Increasing delivery delays",
+      "Low recent on-time delivery rate",
+      "High lead-time variability"
+    ],
+    "confidence": 0.91
+  },
+  {
+    "supplier_id": "SUP002",
+    "on_time_delivery_rate": 0.95,
+    "average_delay_days": 0.8,
+    "late_order_rate": 0.05,
+    "performance_trend": "STABLE",
+    "reliability_score": 0.93,
+    "risk_factors": [],
+    "confidence": 0.97
+  },
+  {
+    "supplier_id": "SUP003",
+    "on_time_delivery_rate": 0.68,
+    "average_delay_days": 7.2,
+    "late_order_rate": 0.32,
+    "performance_trend": "DETERIORATING",
+    "reliability_score": 0.59,
+    "risk_factors": [
+      "Frequent customs and production delays",
+      "Elevated risk during peak season"
+    ],
+    "confidence": 0.9
+  }
+]

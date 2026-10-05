@@ -1,0 +1,35 @@
+[
+  {
+    "purchase_order_id": "PO10025",
+    "supplier_id": "SUP001",
+    "product_id": "PROD100",
+    "order_date": "2026-09-20",
+    "expected_delivery_date": "2026-10-15",
+    "quantity_ordered": 1000,
+    "quantity_received": 400,
+    "status": "IN_TRANSIT",
+    "open_quantity": 600
+  },
+  {
+    "purchase_order_id": "PO10026",
+    "supplier_id": "SUP002",
+    "product_id": "PROD210",
+    "order_date": "2026-09-21",
+    "expected_delivery_date": "2026-10-08",
+    "quantity_ordered": 850,
+    "quantity_received": 850,
+    "status": "DELIVERED",
+    "open_quantity": 0
+  },
+  {
+    "purchase_order_id": "PO10027",
+    "supplier_id": "SUP003",
+    "product_id": "PROD330",
+    "order_date": "2026-09-12",
+    "expected_delivery_date": "2026-10-17",
+    "quantity_ordered": 1200,
+    "quantity_received": 350,
+    "status": "PENDING",
+    "open_quantity": 850
+  }
+]

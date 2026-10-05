@@ -1,0 +1,35 @@
+[
+  {
+    "supplier_id": "SUP001",
+    "supplier_name": "ABC Manufacturing",
+    "country": "India",
+    "supplier_category": "Electronics",
+    "lead_time_days": 14,
+    "on_time_delivery_rate": 0.82,
+    "active": true,
+    "risk_flags": ["Recent delay trend", "High transit variability"],
+    "contact_email": "ops@abcmanufacturing.com"
+  },
+  {
+    "supplier_id": "SUP002",
+    "supplier_name": "Northline Packaging",
+    "country": "China",
+    "supplier_category": "Packaging",
+    "lead_time_days": 9,
+    "on_time_delivery_rate": 0.95,
+    "active": true,
+    "risk_flags": [],
+    "contact_email": "supply@northlinepack.com"
+  },
+  {
+    "supplier_id": "SUP003",
+    "supplier_name": "Harbor Textile Imports",
+    "country": "Bangladesh",
+    "supplier_category": "Apparel",
+    "lead_time_days": 18,
+    "on_time_delivery_rate": 0.68,
+    "active": true,
+    "risk_flags": ["Late shipment history", "Seasonal disruption risk"],
+    "contact_email": "logistics@harbortextile.com"
+  }
+]

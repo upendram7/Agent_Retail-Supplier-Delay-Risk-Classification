@@ -1,0 +1,29 @@
+[
+  {
+    "product_id": "PROD100",
+    "current_inventory": 120,
+    "daily_demand": 35,
+    "days_of_supply": 3.4,
+    "safety_stock": 150,
+    "stockout_risk": "HIGH",
+    "business_impact": "HIGH"
+  },
+  {
+    "product_id": "PROD210",
+    "current_inventory": 480,
+    "daily_demand": 26,
+    "days_of_supply": 18.5,
+    "safety_stock": 130,
+    "stockout_risk": "LOW",
+    "business_impact": "LOW"
+  },
+  {
+    "product_id": "PROD330",
+    "current_inventory": 90,
+    "daily_demand": 28,
+    "days_of_supply": 3.2,
+    "safety_stock": 160,
+    "stockout_risk": "HIGH",
+    "business_impact": "HIGH"
+  }
+]

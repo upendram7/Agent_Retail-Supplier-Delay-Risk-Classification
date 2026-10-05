@@ -1,0 +1,41 @@
+[
+  {
+    "purchase_order_id": "PO10025",
+    "supplier_id": "SUP001",
+    "current_status": "IN_TRANSIT",
+    "carrier_status": "DELAYED",
+    "expected_delivery_date": "2026-10-15",
+    "actual_shipment_date": "2026-10-09",
+    "transit_time_days": 9,
+    "delay_indicators": [
+      "Shipment dispatched 3 days late relative to supplier commitment",
+      "Transit time exceeds historical average"
+    ],
+    "estimated_delay_days": 4,
+    "risk_signal": "HIGH"
+  },
+  {
+    "purchase_order_id": "PO10026",
+    "supplier_id": "SUP002",
+    "current_status": "DELIVERED",
+    "carrier_status": "ON_TIME",
+    "expected_delivery_date": "2026-10-08",
+    "actual_shipment_date": "2026-10-06",
+    "transit_time_days": 7,
+    "delay_indicators": [],
+    "estimated_delay_days": 0,
+    "risk_signal": "LOW"
+  },
+  {
+    "purchase_order_id": "PO10027",
+    "supplier_id": "SUP003",
+    "current_status": "PENDING",
+    "carrier_status": "PORT_HOLD",
+    "expected_delivery_date": "2026-10-17",
+    "actual_shipment_date": null,
+    "transit_time_days": null,
+    "delay_indicators": ["Customs clearance delay", "Production schedule not met"],
+    "estimated_delay_days": 6,
+    "risk_signal": "HIGH"
+  }
+]

@@ -1,0 +1,12 @@
+__pycache__/
+.pytest_cache/
+.env
+.venv/
+node_modules/
+.next/
+*.pyc
+backend/.chroma/
+backend/.env
+backend/*.db
+frontend/.next/
+frontend/node_modules/

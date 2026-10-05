@@ -1,0 +1,35 @@
+[
+  {
+    "document_id": "POL-001",
+    "title": "Supplier Delay Escalation Policy",
+    "source": "procurement_policy_manual.pdf",
+    "category": "delay_policy",
+    "page": 12,
+    "section": "Escalation",
+    "version": "v3",
+    "effective_date": "2026-01-15",
+    "content": "Any supplier delay exceeding 3 calendar days requires an escalation review. When inventory coverage is below the safety stock threshold, the category is elevated and procurement must initiate contingency planning."
+  },
+  {
+    "document_id": "POL-002",
+    "title": "Supplier Performance Management",
+    "source": "supplier_performance_manual.pdf",
+    "category": "supplier_policy",
+    "page": 8,
+    "section": "Risk thresholds",
+    "version": "v2",
+    "effective_date": "2025-11-02",
+    "content": "Suppliers with a delivery reliability score below 0.85 over the last six months are monitored for corrective action. Repeat late deliveries above 20% trigger action review."
+  },
+  {
+    "document_id": "POL-003",
+    "title": "Inventory Risk and Stockout Policy",
+    "source": "inventory_policy_manual.pdf",
+    "category": "inventory_policy",
+    "page": 5,
+    "section": "Stockout prevention",
+    "version": "v1",
+    "effective_date": "2025-10-10",
+    "content": "If the projected days of supply fall below the safety stock threshold, the business should trigger contingency procurement, expedite shipments, or source alternate supply."
+  }
+]

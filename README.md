@@ -1,2 +1,249 @@
-# Agent_Retail-Supplier-Delay-Risk-Classification
-Agentic AI project on Retail Supplier Delay Risk Classification
+# Retail Supplier Delay Risk Classification
+
+## Overview
+This project demonstrates an agentic AI application for supplier delay risk classification in a retail procurement context. It combines specialized agents, deterministic business logic, tool calls, a retrieval-augmented knowledge layer, and a risk classification workflow with human review for consequential actions.
+
+## Business Problem
+Retail organizations depend on suppliers to deliver goods and materials on time. Supplier delays can create stockouts, lost sales, emergency shipping costs, and customer dissatisfaction. The solution analyzes supplier performance, order status, inventory impact, and procurement policy to classify the risk of delay.
+
+## Features
+- Multi-agent workflow with specialized roles
+- Supplier and purchase-order analysis
+- Shipment and inventory impact assessment
+- RAG-based policy retrieval using ChromaDB
+- Risk classification as LOW / MEDIUM / HIGH
+- Human approval gating for high-risk actions
+- FastAPI backend and Next.js frontend
+- Structured logs and test coverage
+
+## Architecture
+
+```mermaid
+flowchart TD
+    User[User] --> Next[Next.js Frontend]
+    Next --> API[FastAPI Backend]
+    API --> Supervisor[Supervisor Agent]
+    Supervisor --> Triage[Triage Agent]
+    Supervisor --> Supplier[Supplier Data Agent]
+    Supervisor --> Performance[Supplier Performance Agent]
+    Supervisor --> Shipment[Shipment Investigation Agent]
+    Supervisor --> Inventory[Inventory Impact Agent]
+    Supervisor --> RAG[RAG Policy Agent]
+    Supervisor --> Risk[Risk Classification Agent]
+    Risk --> Validation[Validation Agent]
+    Risk --> Human[Human Approval]
+    Human --> Action[Action Agent]
+    Validation --> Response[Response Agent]
+    Response --> User
+```
+
+## Multi-Agent Design
+The workflow includes these specialized agents:
+- Supervisor Agent
+- Triage Agent
+- Supplier Data Agent
+- Supplier Performance Agent
+- Shipment Investigation Agent
+- Inventory Impact Agent
+- RAG / Policy Agent
+- Risk Classification Agent
+- Investigation Agent
+- Action Agent
+- Validation Agent
+- Response Agent
+
+## Technology Stack
+- Frontend: Next.js + TypeScript + Tailwind CSS
+- Backend: FastAPI + Pydantic + Python
+- Agent orchestration: LangGraph-style workflow runner
+- Vector database: ChromaDB
+- LLM: configurable OpenAI integration
+- Database: SQLite fallback for local demo; PostgreSQL-ready design
+- Deployment: Docker + Vercel ready
+
+## RAG Architecture
+
+```mermaid
+flowchart LR
+    Docs[Procurement docs and policies] --> Loader[Document Loader]
+    Loader --> Chunking[Chunking]
+    Chunking --> Metadata[Metadata extraction]
+    Metadata --> Embeddings[Embeddings]
+    Embeddings --> Chroma[ChromaDB]
+    Chroma --> Retriever[Retriever]
+    Retriever --> Context[Context builder]
+    Context --> LLM[LLM]
+    LLM --> Response[Grounded answer + citations]
+```
+
+## Risk Classification Methodology
+The system combines:
+- Supplier historical delivery rate
+- Recent delay signals
+- Shipment status and delay estimates
+- Inventory days-of-supply and stockout risk
+- Policy evidence from the RAG layer
+- Human review triggers for high-risk classifications
+
+The demo computes a score and explicit risk class without claiming the score is a calibrated statistical probability. It distinguishes between model confidence, business risk, and evidence.
+
+## Folder Structure
+```text
+.
+├── backend/
+│   ├── app/
+│   │   ├── agents/
+│   │   ├── api/
+│   │   ├── evaluation/
+│   │   ├── graph/
+│   │   ├── models/
+│   │   ├── prompts/
+│   │   ├── rag/
+│   │   ├── services/
+│   │   ├── tools/
+│   │   ├── config.py
+│   │   └── main.py
+│   ├── data/
+│   ├── tests/
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   └── .env.example
+├── frontend/
+│   ├── app/
+│   ├── package.json
+│   └── Dockerfile
+├── docker-compose.yml
+├── README.md
+├── .gitignore
+└── LICENSE
+```
+
+## Installation
+### Backend
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+```
+
+## Environment Variables
+Create a backend `.env` file with values similar to:
+```bash
+OPENAI_API_KEY=your_key_here
+OPENAI_MODEL=gpt-4o-mini
+API_HOST=0.0.0.0
+API_PORT=8000
+CORS_ORIGINS=http://localhost:3000
+```
+
+## Running Locally
+### Start backend
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### Start frontend
+```bash
+cd frontend
+npm run dev
+```
+
+### Or use Docker Compose
+```bash
+docker compose up --build
+```
+
+## API Endpoints
+- POST /api/chat
+- POST /api/agent/run
+- POST /api/risk/classify
+- GET /api/health
+- GET /api/metrics
+- GET /api/suppliers/{supplier_id}
+- GET /api/purchase-orders/{purchase_order_id}
+- GET /api/sessions/{session_id}
+- GET /api/workflows/{workflow_id}
+- POST /api/approval/{workflow_id}
+
+## Sample Request
+```bash
+curl -X POST http://localhost:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_query": "What is the delay risk for supplier SUP001 and purchase order PO10025?",
+    "supplier_id": "SUP001",
+    "purchase_order_id": "PO10025",
+    "product_id": "PROD100"
+  }'
+```
+
+## Testing
+```bash
+cd backend
+pytest
+```
+
+## Evaluation
+The project includes a sample evaluation dataset in `backend/app/evaluation/sample_cases.py` with normal, medium, high-risk, and adversarial scenarios. Those datasets can be expanded to measure:
+- intent classification accuracy
+- risk classification accuracy
+- retrieval relevance
+- citation correctness
+- policy compliance
+- escalation correctness
+
+## Deployment
+### Vercel
+The frontend is ready for Vercel deployment using the `NEXT_PUBLIC_API_URL` environment variable.
+
+### Docker / Backend
+The backend is containerized and can be deployed to Azure, AWS, Render, or Railway using the included Dockerfile and `docker-compose.yml`.
+
+## Limitations
+- This is a working demo that uses realistic synthetic data.
+- The LLM path is configurable and falls back to deterministic logic when an API key is not available.
+- The vector store is functional for local demo use and can be expanded for production-grade policy ingestion.
+
+## Future Enhancements
+- Add persistent PostgreSQL storage and analytics tables
+- Expand the human approval workflow with an approval dashboard
+- Implement richer retrieval and reranking
+- Add LangSmith or OpenTelemetry tracing
+- Add a dedicated ML risk-scoring model service alongside the rules-based system
+
+## Architecture Diagram
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant A as FastAPI Backend
+    participant G as Agent Workflow
+    participant D as Data + Tools
+    participant R as RAG Layer
+    participant H as Human Approval
+
+    U->>F: Enter supplier / PO
+    F->>A: POST /api/chat
+    A->>G: Run workflow
+    G->>D: Retrieve supplier, order, shipment, inventory data
+    G->>R: Access relevant policy docs
+    G->>G: Classify risk
+    alt High risk
+        G->>H: Request approval
+        H-->>G: Approve / reject / modify
+    end
+    G->>A: Return structured summary
+    A-->>F: Display evidence and recommendation
+    F-->>U: Final answer
+```
