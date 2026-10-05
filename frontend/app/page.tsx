@@ -13,7 +13,7 @@ export default function Page() {
   async function analyzeRisk() {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/chat`, {
+      const res = await fetch(`${API_URL}/api/risk/classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -22,10 +22,35 @@ export default function Page() {
           purchase_order_id: purchaseOrderId,
         }),
       });
+
+      if (!res.ok) {
+        let message = `Request failed with status ${res.status}`;
+        try {
+          const errData = await res.json();
+          if (errData?.detail) {
+            message = typeof errData.detail === 'string' ? errData.detail : JSON.stringify(errData.detail);
+          } else if (errData?.message) {
+            message = errData.message;
+          }
+        } catch {
+          try {
+            const text = await res.text();
+            if (text) message = text;
+          } catch {
+            // Ignore non-JSON fallback parsing errors.
+          }
+        }
+        throw new Error(message);
+      }
+
       const data = await res.json();
       setResult(data);
     } catch (error) {
-      setResult({ final_response: 'Unable to connect to backend service.', errors: [String(error)] });
+      const message = error instanceof Error ? error.message : 'Unable to connect to backend service.';
+      setResult({
+        final_response: `Unable to complete classification: ${message}`,
+        errors: [message],
+      });
     } finally {
       setLoading(false);
     }
