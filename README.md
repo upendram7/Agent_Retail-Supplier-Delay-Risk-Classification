@@ -12,7 +12,8 @@ Retail organizations depend on suppliers to deliver goods and materials on time.
 - Shipment and inventory impact assessment
 - RAG-based policy retrieval using ChromaDB
 - Risk classification as LOW / MEDIUM / HIGH
-- Human approval gating for high-risk actions
+- Guardrails for supplier-risk scope, validated identifiers, and read-only access
+- Human review proposals for high-risk recommendations; no operational actions are executed
 - FastAPI backend and Next.js frontend
 - Structured logs and test coverage
 
@@ -86,6 +87,15 @@ The system combines:
 - Human review triggers for high-risk classifications
 
 The demo computes a score and explicit risk class without claiming the score is a calibrated statistical probability. It distinguishes between model confidence, business risk, and evidence.
+
+## Agent Guardrails
+- Requests are limited to supplier delay risk classification and known supplier/purchase-order records. Unknown, ambiguous, or mismatched identifiers are rejected rather than replaced with demo defaults.
+- The workflow only reads its local supplier, purchase-order, shipment, inventory, and policy data. External/action tools are disabled; action recommendations are proposals and never report success.
+- High-risk recommendations are marked `PENDING` human review. Workflow/approval state is not persisted, so the approval endpoint returns `409` and cannot authorize execution. No operational action is run after an approval request.
+- User instructions and retrieved documents are treated as untrusted data. The policy retriever uses a fixed domain query rather than arbitrary user text.
+- Request/query lengths and ID formats are bounded; unsupported operational-action requests and instruction-override attempts are rejected with explicit API errors.
+
+This demo does not provide persistent sessions, approval records, or a downstream action executor. Those capabilities must be implemented and secured before approvals can trigger real operational changes.
 
 ## Folder Structure
 ```text

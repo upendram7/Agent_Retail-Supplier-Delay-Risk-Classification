@@ -4,14 +4,12 @@ from typing import Any, Dict, List
 from pathlib import Path
 import json
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data"
 
 
 def _load_json(filename: str) -> List[Dict[str, Any]]:
     file_path = DATA_DIR / filename
-    if not file_path.exists():
-        return []
     with open(file_path, "r", encoding="utf-8") as fh:
         return json.load(fh)
 

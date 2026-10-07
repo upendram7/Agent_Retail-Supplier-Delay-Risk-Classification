@@ -73,17 +73,20 @@ def purchase_order_detail(purchase_order_id: str) -> Dict[str, Any]:
 
 @router.get("/sessions/{session_id}")
 def get_session(session_id: str) -> Dict[str, Any]:
-    return {"session_id": session_id, "status": "active"}
+    raise HTTPException(status_code=404, detail="Session state is not persisted.")
 
 
 @router.get("/workflows/{workflow_id}")
 def get_workflow(workflow_id: str) -> Dict[str, Any]:
-    return {"workflow_id": workflow_id, "status": "completed"}
+    raise HTTPException(status_code=404, detail="Workflow state is not persisted.")
 
 
 @router.post("/approval/{workflow_id}")
 def approval(workflow_id: str, payload: ApprovalPayload) -> Dict[str, Any]:
-    return {"workflow_id": workflow_id, "decision": payload.decision, "notes": payload.notes or "", "status": "recorded"}
+    raise HTTPException(
+        status_code=409,
+        detail="Approval cannot be applied because workflow state is not persisted. No action has been executed.",
+    )
 
 
 @router.get("/demo")

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TriageInput(BaseModel):
@@ -100,14 +100,16 @@ class InvestigationResult(BaseModel):
 
 class ApprovalPayload(BaseModel):
     decision: Literal["APPROVE", "REJECT", "MODIFY"]
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=1000)
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
 class ChatRequest(BaseModel):
-    user_query: str
-    supplier_id: Optional[str] = None
-    purchase_order_id: Optional[str] = None
-    product_id: Optional[str] = None
+    user_query: str = Field(min_length=1, max_length=2000)
+    supplier_id: Optional[str] = Field(default=None, min_length=1, max_length=32, pattern=r"^[A-Za-z0-9_-]+$")
+    purchase_order_id: Optional[str] = Field(default=None, min_length=1, max_length=32, pattern=r"^[A-Za-z0-9_-]+$")
+    product_id: Optional[str] = Field(default=None, min_length=1, max_length=32, pattern=r"^[A-Za-z0-9_-]+$")
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
 
 class WorkflowState(BaseModel):

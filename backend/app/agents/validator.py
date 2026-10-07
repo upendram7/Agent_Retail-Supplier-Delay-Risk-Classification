@@ -6,10 +6,10 @@ from typing import Any, Dict
 def run(state: Dict[str, Any]) -> str:
     docs = state.get("retrieved_documents", [])
     classification = state.get("risk_classification", {})
-    if not docs:
-        return "RETRY"
-    if not classification.get("risk_class"):
+    if classification.get("risk_class") not in {"LOW", "MEDIUM", "HIGH"}:
         return "BLOCK"
-    if classification.get("risk_class") == "HIGH" and not state.get("human_approval"):
+    if not docs:
+        return "BLOCK"
+    if classification["risk_class"] == "HIGH":
         return "HUMAN_REVIEW"
     return "PASS"

@@ -1,19 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from app.guardrails import deny_action_tool
 
 
-def create_supplier_escalation(supplier_id: str, reason: str) -> Dict[str, Any]:
-    return {"tool": "create_supplier_escalation", "supplier_id": supplier_id, "status": "success", "reason": reason}
+def create_supplier_escalation(supplier_id: str, reason: str) -> None:
+    deny_action_tool("create_supplier_escalation")
 
 
-def create_procurement_ticket(po_id: str, summary: str) -> Dict[str, Any]:
-    return {"tool": "create_procurement_ticket", "purchase_order_id": po_id, "status": "success", "summary": summary}
+def create_procurement_ticket(po_id: str, summary: str) -> None:
+    deny_action_tool("create_procurement_ticket")
 
 
-def request_supplier_confirmation(supplier_id: str, message: str) -> Dict[str, Any]:
-    return {"tool": "request_supplier_confirmation", "supplier_id": supplier_id, "status": "success", "message": message}
+def request_supplier_confirmation(supplier_id: str, message: str) -> None:
+    deny_action_tool("request_supplier_confirmation")
 
 
-def flag_purchase_order(po_id: str) -> Dict[str, Any]:
-    return {"tool": "flag_purchase_order", "purchase_order_id": po_id, "status": "success"}
+def flag_purchase_order(po_id: str) -> None:
+    deny_action_tool("flag_purchase_order")
