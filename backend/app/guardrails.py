@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 import re
+import hashlib
 from typing import Any, Dict, NoReturn, Optional
 
 from fastapi import HTTPException
 
+from app.services.observability import current_trace_context, store
 from app.services.data_service import get_purchase_order, get_supplier
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,28 @@ _UNSUPPORTED_ACTION_PATTERN = re.compile(
 
 def _reject(code: str, detail: str, status_code: int = 422) -> None:
     logger.warning("Guardrail rejected request: %s", code)
+    context = current_trace_context()
+    store.record_guardrail(
+        guardrail_name="supplier_risk_input",
+        guardrail_type="input",
+        decision="BLOCK",
+        reason=code,
+        request_id=context.get("request_id"),
+        trace_id=context.get("trace_id"),
+        session_id=context.get("session_id"),
+        severity="WARNING",
+        action_taken="rejected",
+        input_hash=context.get("input_hash"),
+    )
+    store.record_security(
+        "prompt_injection_attempt" if code == "instruction_override" else "request_validation",
+        "BLOCKED",
+        context.get("endpoint"),
+        context.get("request_id"),
+        context.get("trace_id"),
+        "WARNING",
+        {"reason_code": code},
+    )
     raise HTTPException(status_code=status_code, detail=detail)
 
 
@@ -56,6 +80,23 @@ def authorize_tool(tool_name: str) -> None:
 def deny_action_tool(tool_name: str) -> NoReturn:
     if tool_name not in DISABLED_ACTION_TOOLS:
         raise PermissionError(f"Tool '{tool_name}' is not an approved action tool.")
+    context = current_trace_context()
+    store.record_guardrail(
+        guardrail_name="tool_authorization",
+        guardrail_type="tool",
+        decision="BLOCK",
+        reason="operational_tools_disabled",
+        request_id=context.get("request_id"),
+        trace_id=context.get("trace_id"),
+        session_id=context.get("session_id"),
+        severity="WARNING",
+        action_taken="tool_blocked",
+    )
+    store.record_security(
+        "blocked_tool_call", "BLOCKED", context.get("endpoint"),
+        context.get("request_id"), context.get("trace_id"), "WARNING",
+        {"tool_name": tool_name},
+    )
     raise PermissionError(f"Tool '{tool_name}' is disabled; no operational actions are permitted.")
 
 
@@ -79,6 +120,10 @@ def validate_supplier_risk_request(
     product_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Constrain a request to read-only supplier delay risk analysis."""
+    input_hash = hashlib.sha256(user_query.encode("utf-8")).hexdigest()
+    context = current_trace_context()
+    if context:
+        context["input_hash"] = input_hash
     if not user_query.strip() or len(user_query) > 2000:
         _reject("invalid_query", "user_query must contain 1 to 2000 characters.")
     if any(ord(character) < 32 and character not in "\r\n\t" for character in user_query):
@@ -125,6 +170,15 @@ def validate_supplier_risk_request(
     if resolved_product_id and resolved_product_id != expected_product_id:
         _reject("product_order_mismatch", "The product does not match the specified purchase order.")
 
+    store.record_guardrail(
+        guardrail_name="supplier_risk_input",
+        guardrail_type="input",
+        decision="ALLOW",
+        reason="scope_and_identifiers_valid",
+        severity="INFO",
+        action_taken="continued",
+        input_hash=input_hash,
+    )
     return {
         "supplier_id": resolved_supplier_id,
         "purchase_order_id": resolved_po_id,

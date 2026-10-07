@@ -95,7 +95,15 @@ The demo computes a score and explicit risk class without claiming the score is 
 - User instructions and retrieved documents are treated as untrusted data. The policy retriever uses a fixed domain query rather than arbitrary user text.
 - Request/query lengths and ID formats are bounded; unsupported operational-action requests and instruction-override attempts are rejected with explicit API errors.
 
-This demo does not provide persistent sessions, approval records, or a downstream action executor. Those capabilities must be implemented and secured before approvals can trigger real operational changes.
+This demo persists pending approval requests for monitoring, but does not implement reviewer identity, approval decisions, or a downstream action executor. Approval submissions are rejected until those capabilities are implemented and secured.
+
+## Observability
+- The FastAPI backend creates `backend/observability.db` (override with `OBSERVABILITY_DB_PATH`) using SQLite WAL, foreign keys, indexes, and a five-second busy timeout.
+- `/metrics`, `/logs`, `/traces`, and `/drift` are backed by `/api/observability/*`, `/api/metrics/*`, `/api/logs`, `/api/traces`, and `/api/drift` APIs. Data is paginated and time/environment filterable.
+- Seeded synthetic demonstration events are inserted once into SQLite so dashboards are populated at first launch. Subsequent request, agent, tool, RAG, guardrail, approval-request, drift, error, and system measurements are recorded from real execution; no random data is generated for live requests.
+- Every API request receives server-generated request, trace, and session UUIDs exposed as response headers. Trace detail correlates spans with logs, model calls, agent runs, tools, retrieval, errors, and guardrail events. Raw request text and credentials are not stored in observability events.
+- SQLite queries are measured with operation, table, duration, status, and error type; SQL statements and parameter values are not stored. Database metrics include query latency percentiles and slow-query samples without exposing the absolute database path.
+- The SQLite retention cleanup runs at startup and at most hourly, retaining 90 days by default. Configure `OBSERVABILITY_RETENTION_DAYS` to change the positive retention period.
 
 ## Folder Structure
 ```text
@@ -152,6 +160,7 @@ OPENAI_MODEL=gpt-4o-mini
 API_HOST=0.0.0.0
 API_PORT=8000
 CORS_ORIGINS=http://localhost:3000
+OBSERVABILITY_RETENTION_DAYS=90
 ```
 
 ## Running Locally

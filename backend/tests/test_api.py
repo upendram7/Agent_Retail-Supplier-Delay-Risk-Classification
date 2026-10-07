@@ -122,3 +122,63 @@ def test_compiled_graph_enforces_review_and_action_guardrails():
     assert result['human_approval'] == {'required': True, 'decision': 'PENDING'}
     assert result['proposal']['status'] == 'PENDING_APPROVAL'
     assert 'no action has been executed' in result['final_response']
+
+
+def test_observability_seeded_apis_are_populated():
+    requests = client.get('/api/metrics/requests?time_range=30d').json()
+    llm = client.get('/api/metrics/llm?time_range=30d').json()
+    agents = client.get('/api/metrics/agents?time_range=30d').json()
+    tools = client.get('/api/metrics/tools?time_range=30d').json()
+    rag = client.get('/api/metrics/rag?time_range=30d').json()
+    traces = client.get('/api/traces?time_range=30d').json()
+    drift = client.get('/api/drift?time_range=30d').json()
+    assert requests['total'] >= 300
+    assert llm['total'] >= 300
+    assert agents['total'] >= 200
+    assert tools['total'] >= 500
+    assert rag['total'] >= 200
+    assert traces['total'] >= 100
+    assert drift['categories']
+    for endpoint in (
+        '/api/observability/overview',
+        '/api/metrics/system',
+        '/api/metrics/database',
+        '/api/metrics/cost',
+        '/api/drift/data',
+        '/api/drift/model',
+        '/api/drift/prediction',
+        '/api/drift/concept',
+        '/api/drift/prompt',
+        '/api/drift/retrieval',
+        '/api/errors',
+        '/api/security',
+        '/api/guardrails',
+        '/api/approvals',
+        '/api/alerts',
+    ):
+        assert client.get(endpoint).status_code == 200, endpoint
+    database = client.get('/api/metrics/database?time_range=30d').json()
+    assert 'database_path' not in database
+    assert database['database']
+    assert database['queries']['queries'] > 0
+    assert 'p95' in database['query_latency']
+
+
+def test_live_request_is_correlated_across_trace_and_events():
+    response = client.post('/api/chat', json={
+        'user_query': 'Classify delay risk for supplier SUP001 and purchase order PO10025.',
+        'supplier_id': 'SUP001',
+        'purchase_order_id': 'PO10025',
+    })
+    assert response.status_code == 200
+    result = response.json()
+    assert response.headers['x-request-id'] == result['request_id']
+    assert response.headers['x-trace-id'] == result['trace_id']
+    trace = client.get(f"/api/traces/{result['trace_id']}").json()
+    assert trace['trace']['request_id'] == result['request_id']
+    assert trace['spans']
+    assert trace['logs']
+    assert trace['agent_runs']
+    assert trace['tool_calls']
+    assert trace['retrievals']
+    assert trace['guardrails']

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,6 +16,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./supplier_risk.db"
     chroma_path: str = str(BASE_DIR / ".chroma")
     log_level: str = "INFO"
+    observability_retention_days: int = Field(default=90, gt=0)
 
     model_config = SettingsConfigDict(env_file=BASE_DIR / ".env", extra="ignore")
 

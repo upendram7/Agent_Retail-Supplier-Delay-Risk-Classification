@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -19,19 +18,17 @@ def health() -> Dict[str, Any]:
 
 @router.get("/metrics")
 def metrics() -> Dict[str, Any]:
-    return {"requests": 0, "status": "available"}
+    return {"detail": "Use /api/observability/overview or the /api/metrics/* endpoints."}
 
 
 @router.post("/chat")
 def chat(payload: ChatRequest) -> Dict[str, Any]:
-    session_id = f"session-{uuid.uuid4().hex[:8]}"
     workflow = run_workflow(
         user_query=payload.user_query,
         supplier_id=payload.supplier_id,
         purchase_order_id=payload.purchase_order_id,
         product_id=payload.product_id,
     )
-    workflow["session_id"] = session_id
     return workflow
 
 
@@ -96,4 +93,8 @@ def demo_case() -> Dict[str, Any]:
 
 @router.get("/suppliers")
 def suppliers() -> Dict[str, Any]:
-    return {"suppliers": get_supplier_list()}
+    return {
+        "request_id": context.get("request_id"),
+        "trace_id": context.get("trace_id"),
+        "conversation_id": context.get("session_id"),
+        "user_id": None,"suppliers": get_supplier_list()}
