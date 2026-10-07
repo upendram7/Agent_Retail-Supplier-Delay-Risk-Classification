@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export const TIME_RANGES = [
   ['15m', 'Last 15 minutes'],
   ['1h', 'Last hour'],
@@ -18,7 +17,7 @@ export const TIME_RANGES = [
 export type ApiList<T> = { items: T[]; page: number; per_page: number; total: number; summary?: Record<string, number | string | null> };
 
 export async function api<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, { cache: 'no-store' });
+  const response = await fetch(path, { cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`Observability API returned ${response.status}`);
   }

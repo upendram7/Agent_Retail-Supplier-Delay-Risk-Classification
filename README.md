@@ -105,6 +105,13 @@ This demo persists pending approval requests for monitoring, but does not implem
 - SQLite queries are measured with operation, table, duration, status, and error type; SQL statements and parameter values are not stored. Database metrics include query latency percentiles and slow-query samples without exposing the absolute database path.
 - The SQLite retention cleanup runs at startup and at most hourly, retaining 90 days by default. Configure `OBSERVABILITY_RETENTION_DAYS` to change the positive retention period.
 
+### Deploying the dashboard to Vercel
+- Import this repository in Vercel and set the project's **Root Directory** to `frontend`. The Next.js project configuration is in `frontend/vercel.json`.
+- Configure `BACKEND_API_URL` as the origin of a publicly reachable FastAPI deployment, for example `https://api.example.com` (do not append `/api`). Vercel rewrites same-origin `/api/*` requests to that service, so the browser does not need direct cross-origin API access.
+- Deploy the FastAPI backend separately on a host that supports persistent storage. Its health endpoint must respond at `https://api.example.com/api/health`. Configure its environment variables, including a persistent `OBSERVABILITY_DB_PATH` and `CORS_ORIGINS` if other browser clients will access it directly.
+- After deployment, the dashboard pages are `/logs`, `/metrics`, `/traces`, and `/drift`. Verify the backend through `/api/health` and check these routes on the Vercel domain.
+- Do not use a Vercel deployment URL as `BACKEND_API_URL` unless that deployment also runs the FastAPI API and its persistent SQLite storage.
+
 ## Folder Structure
 ```text
 .

@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
 export default function Page() {
   const [supplierId, setSupplierId] = useState('SUP001');
   const [purchaseOrderId, setPurchaseOrderId] = useState('PO10025');
@@ -14,7 +12,7 @@ export default function Page() {
   async function analyzeRisk() {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/risk/classify`, {
+      const res = await fetch('/api/risk/classify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
