@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ReactNode } from 'react';
+import { apiUrl } from '../lib/api';
 
 export const TIME_RANGES = [
   ['15m', 'Last 15 minutes'],
@@ -17,7 +18,7 @@ export const TIME_RANGES = [
 export type ApiList<T> = { items: T[]; page: number; per_page: number; total: number; summary?: Record<string, number | string | null> };
 
 export async function api<T>(path: string): Promise<T> {
-  const response = await fetch(path, { cache: 'no-store' });
+  const response = await fetch(apiUrl(path), { cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`Observability API returned ${response.status}`);
   }

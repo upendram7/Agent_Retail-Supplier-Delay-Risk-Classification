@@ -184,6 +184,19 @@ cd frontend
 npm run dev
 ```
 
+### Deploy frontend and backend separately
+The frontend sends API requests to `NEXT_PUBLIC_API_URL`. Set this variable in
+the Vercel frontend project's Environment Variables to the backend deployment
+URL, for example:
+```text
+NEXT_PUBLIC_API_URL=https://agent-retail-supplier-delay-risk-classification-xct7-r7pg9ma33.vercel.app
+```
+Redeploy the frontend after changing the variable. The backend deployment must
+allow unauthenticated API access for this demo, and its `CORS_ORIGINS` setting
+must include `https://agent-retail-supplier-delay-risk-cl.vercel.app`.
+Vercel Deployment Protection on the backend must not redirect browser API
+requests to an SSO page.
+
 ### Or use Docker Compose
 ```bash
 docker compose up --build

@@ -132,6 +132,10 @@ CREATE TABLE IF NOT EXISTS human_approval_events (
     trace_id TEXT, session_id TEXT, workflow_id TEXT, decision TEXT NOT NULL,
     reason TEXT, reviewer TEXT, duration_ms REAL, environment TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS workflow_states (
+    workflow_id TEXT PRIMARY KEY, session_id TEXT NOT NULL, request_id TEXT, trace_id TEXT,
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL, state_json TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS cost_metrics (
     id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT NOT NULL, request_id TEXT,
     trace_id TEXT, session_id TEXT, agent_name TEXT, model_name TEXT NOT NULL,
@@ -435,6 +439,98 @@ class ObservabilityStore:
                     raise
                 time.sleep(0.05 * (attempt + 1))
         return 0
+
+    def persist_workflow_state(self, state: dict[str, Any]) -> None:
+        timestamp = utc_now()
+        self.write(
+            """INSERT INTO workflow_states(workflow_id,session_id,request_id,trace_id,
+               created_at,updated_at,state_json) VALUES(?,?,?,?,?,?,?)
+               ON CONFLICT(workflow_id) DO UPDATE SET
+                   session_id=excluded.session_id,request_id=excluded.request_id,
+                   trace_id=excluded.trace_id,updated_at=excluded.updated_at,
+                   state_json=excluded.state_json""",
+            (
+                state["workflow_id"],
+                state["session_id"],
+                state.get("request_id"),
+                state.get("trace_id"),
+                timestamp,
+                timestamp,
+                json.dumps(state, ensure_ascii=True, separators=(",", ":"), default=str),
+            ),
+        )
+
+    def get_workflow_state(self, workflow_id: str) -> Optional[dict[str, Any]]:
+        rows = self.execute(
+            "SELECT state_json FROM workflow_states WHERE workflow_id=?",
+            (workflow_id,),
+        )
+        if not rows:
+            return None
+        state = json.loads(rows[0]["state_json"])
+        if not isinstance(state, dict):
+            raise ValueError(f"Persisted workflow state {workflow_id!r} is not a JSON object.")
+        return state
+
+    def record_workflow_approval_decision(
+        self, workflow_id: str, decision: str, notes: Optional[str] = None
+    ) -> Optional[dict[str, Any]]:
+        self.initialize()
+        timestamp = utc_now()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT state_json FROM workflow_states WHERE workflow_id=?",
+                (workflow_id,),
+            ).fetchone()
+            if row is None:
+                connection.rollback()
+                return None
+
+            state = json.loads(row["state_json"])
+            if not isinstance(state, dict):
+                raise ValueError(f"Persisted workflow state {workflow_id!r} is not a JSON object.")
+            human_approval = state.get("human_approval", {})
+            state["human_approval"] = {
+                **human_approval,
+                "decision": {
+                    "APPROVE": "APPROVED",
+                    "REJECT": "REJECTED",
+                    "MODIFY": "MODIFIED",
+                }[decision],
+                "notes": notes,
+                "decided_at": timestamp,
+            }
+            guardrails = state.get("guardrails", {})
+            state["guardrails"] = {
+                **guardrails,
+                "approval_decisions_persisted": True,
+            }
+            connection.execute(
+                """UPDATE workflow_states SET updated_at=?,state_json=?
+                   WHERE workflow_id=?""",
+                (
+                    timestamp,
+                    json.dumps(state, ensure_ascii=True, separators=(",", ":"), default=str),
+                    workflow_id,
+                ),
+            )
+            connection.execute(
+                """INSERT INTO human_approval_events(timestamp,request_id,trace_id,session_id,
+                   workflow_id,decision,reason,environment) VALUES(?,?,?,?,?,?,?,?)""",
+                (
+                    timestamp,
+                    state.get("request_id"),
+                    state.get("trace_id"),
+                    state.get("session_id"),
+                    workflow_id,
+                    decision,
+                    notes,
+                    self.environment,
+                ),
+            )
+            connection.commit()
+        return state
 
     @staticmethod
     def _query_name(sql: str) -> str:
@@ -842,15 +938,33 @@ class ObservabilityStore:
     def cleanup(self, retention_days: int = 90) -> dict[str, int]:
         cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
         removed: dict[str, int] = {}
-        tables = (
-            "application_logs", "request_metrics", "llm_metrics", "agent_metrics", "tool_metrics",
-            "rag_metrics", "system_metrics", "drift_observations", "security_events",
-            "guardrail_events", "human_approval_events", "cost_metrics", "token_metrics",
-            "error_events", "spans", "traces", "alerts", "query_metrics",
-        )
+        tables = {
+            "application_logs": "timestamp",
+            "request_metrics": "timestamp",
+            "llm_metrics": "timestamp",
+            "agent_metrics": "timestamp",
+            "tool_metrics": "timestamp",
+            "rag_metrics": "timestamp",
+            "system_metrics": "timestamp",
+            "drift_observations": "timestamp",
+            "security_events": "timestamp",
+            "guardrail_events": "timestamp",
+            "human_approval_events": "timestamp",
+            "cost_metrics": "timestamp",
+            "token_metrics": "timestamp",
+            "error_events": "timestamp",
+            "workflow_states": "updated_at",
+            "spans": "started_at",
+            "traces": "started_at",
+            "alerts": "timestamp",
+            "query_metrics": "timestamp",
+        }
         with self._connect() as connection:
-            for table in tables:
-                cursor = connection.execute(f"DELETE FROM {table} WHERE timestamp < ?", (cutoff,))
+            for table, time_column in tables.items():
+                cursor = connection.execute(
+                    f"DELETE FROM {table} WHERE {time_column} < ?",
+                    (cutoff,),
+                )
                 removed[table] = cursor.rowcount
             connection.execute("PRAGMA wal_checkpoint(PASSIVE)")
         self._last_cleanup = time.monotonic()

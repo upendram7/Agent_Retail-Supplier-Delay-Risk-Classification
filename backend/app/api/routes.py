@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from app.graph.workflow import run_workflow
 from app.models.schemas import ApprovalPayload, ChatRequest, WorkflowState
 from app.services.data_service import get_demo_case, get_purchase_order, get_supplier, get_supplier_list
+from app.services.observability import store
 
 router = APIRouter(prefix="/api")
 
@@ -75,15 +76,36 @@ def get_session(session_id: str) -> Dict[str, Any]:
 
 @router.get("/workflows/{workflow_id}")
 def get_workflow(workflow_id: str) -> Dict[str, Any]:
-    raise HTTPException(status_code=404, detail="Workflow state is not persisted.")
+    workflow = store.get_workflow_state(workflow_id)
+    if workflow is None:
+        raise HTTPException(status_code=404, detail="Workflow not found.")
+    return workflow
 
 
 @router.post("/approval/{workflow_id}")
 def approval(workflow_id: str, payload: ApprovalPayload) -> Dict[str, Any]:
-    raise HTTPException(
-        status_code=409,
-        detail="Approval cannot be applied because workflow state is not persisted. No action has been executed.",
+    current_workflow = store.get_workflow_state(workflow_id)
+    if current_workflow is None:
+        raise HTTPException(status_code=404, detail="Workflow not found.")
+    if not current_workflow.get("human_approval", {}).get("required", False):
+        raise HTTPException(
+            status_code=409,
+            detail="Human approval is not required for this workflow. No action has been executed.",
+        )
+
+    workflow = store.record_workflow_approval_decision(
+        workflow_id, payload.decision, payload.notes
     )
+    if workflow is None:
+        raise HTTPException(status_code=404, detail="Workflow not found.")
+    return {
+        "workflow_id": workflow_id,
+        "decision": payload.decision,
+        "status": "RECORDED",
+        "human_approval": workflow["human_approval"],
+        "action_executed": False,
+        "message": f"Approval decision {payload.decision} recorded. No action has been executed.",
+    }
 
 
 @router.get("/demo")

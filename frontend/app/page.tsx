@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { apiUrl } from '../lib/api';
 
 export default function Page() {
   const [supplierId, setSupplierId] = useState('SUP001');
@@ -12,7 +13,7 @@ export default function Page() {
   async function analyzeRisk() {
     setLoading(true);
     try {
-      const res = await fetch('/api/risk/classify', {
+      const res = await fetch(apiUrl('/api/risk/classify'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

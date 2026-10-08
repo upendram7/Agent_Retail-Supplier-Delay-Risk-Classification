@@ -106,11 +106,81 @@ def test_tool_allowlist_is_empty():
         raise AssertionError('A tool ran even though the allowlist is empty.')
 
 
-def test_approval_endpoint_does_not_claim_to_record_or_execute():
+def test_approval_unknown_workflow_returns_not_found():
     response = client.post('/api/approval/wf-test', json={'decision': 'APPROVE'})
+    assert response.status_code == 404
+    assert response.json()['detail'] == 'Workflow not found.'
+
+
+def test_workflow_state_persists_and_approval_decisions_are_recorded():
+    workflow_response = client.post('/api/chat', json={
+        'user_query': 'Classify delay risk for supplier SUP001 and purchase order PO10025.',
+        'supplier_id': 'SUP001',
+        'purchase_order_id': 'PO10025',
+    })
+    assert workflow_response.status_code == 200
+    workflow = workflow_response.json()
+    workflow_id = workflow['workflow_id']
+
+    persisted = client.get(f'/api/workflows/{workflow_id}')
+    assert persisted.status_code == 200
+    assert persisted.json()['query'] == workflow['query']
+    assert persisted.json()['guardrails']['approval_request_persisted'] is True
+    assert persisted.json()['guardrails']['action_execution'] == 'DISABLED'
+
+    decisions = ('APPROVE', 'REJECT', 'MODIFY')
+    for decision in decisions:
+        response = client.post(
+            f'/api/approval/{workflow_id}',
+            json={'decision': decision, 'notes': f'Operator selected {decision.lower()}.'},
+        )
+        assert response.status_code == 200
+        result = response.json()
+        assert result['workflow_id'] == workflow_id
+        assert result['decision'] == decision
+        assert result['status'] == 'RECORDED'
+        assert result['action_executed'] is False
+        assert result['human_approval']['decision'] == {
+            'APPROVE': 'APPROVED',
+            'REJECT': 'REJECTED',
+            'MODIFY': 'MODIFIED',
+        }[decision]
+        assert 'No action has been executed' in result['message']
+
+    updated = client.get(f'/api/workflows/{workflow_id}').json()
+    assert updated['human_approval']['decision'] == 'MODIFIED'
+    assert updated['guardrails']['approval_decisions_persisted'] is True
+    assert updated['guardrails']['action_execution'] == 'DISABLED'
+
+    approval_events = client.get('/api/approvals?time_range=30d').json()['items']
+    recorded_decisions = {
+        event['decision']
+        for event in approval_events
+        if event['workflow_id'] == workflow_id
+    }
+    assert recorded_decisions.issuperset(decisions)
+
+
+def test_approval_is_rejected_when_human_review_is_not_required():
+    workflow_response = client.post('/api/chat', json={
+        'user_query': 'Classify delay risk for supplier SUP002 and purchase order PO10026.',
+        'supplier_id': 'SUP002',
+        'purchase_order_id': 'PO10026',
+    })
+    assert workflow_response.status_code == 200
+    workflow_id = workflow_response.json()['workflow_id']
+    response = client.post(
+        f'/api/approval/{workflow_id}',
+        json={'decision': 'APPROVE'},
+    )
     assert response.status_code == 409
-    assert 'not persisted' in response.json()['detail']
+    assert 'approval is not required' in response.json()['detail']
     assert 'No action has been executed' in response.json()['detail']
+
+
+def test_workflow_lookup_returns_not_found_for_unknown_workflow():
+    response = client.get('/api/workflows/wf-not-found')
+    assert response.status_code == 404
 
 
 def test_compiled_graph_enforces_review_and_action_guardrails():

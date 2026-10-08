@@ -10,7 +10,10 @@ class Settings(BaseSettings):
     app_env: str = "local"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "https://agent-retail-supplier-delay-risk-cl.vercel.app"
+    )
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
     database_url: str = "sqlite:///./supplier_risk.db"

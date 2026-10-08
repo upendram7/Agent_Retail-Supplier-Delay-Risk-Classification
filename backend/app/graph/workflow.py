@@ -144,7 +144,7 @@ def run_workflow(user_query: str, supplier_id: str | None = None, purchase_order
         store.record_drift("data", feature, None, float(value), None, "feature_observation",
                            context.get("request_id"), context.get("trace_id"))
 
-    return {
+    result = {
         "request_id": context.get("request_id"),
         "trace_id": context.get("trace_id"),
         "conversation_id": context.get("session_id"),
@@ -181,6 +181,8 @@ def run_workflow(user_query: str, supplier_id: str | None = None, purchase_order
         "final_response": state["final_response"],
         "errors": state["errors"],
     }
+    store.persist_workflow_state(result)
+    return result
 
 
 def build_graph() -> StateGraph:
