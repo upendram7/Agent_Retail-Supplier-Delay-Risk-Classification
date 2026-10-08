@@ -2,8 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Retail Supplier Risk Observability',
-  description: 'Risk classification and persisted agent observability dashboards',
+  title: 'Supplier Delay Risk Classification',
+  description: 'Agentic AI demo for retail supplier delay risk classification',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

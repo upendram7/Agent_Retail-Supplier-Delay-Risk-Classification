@@ -4,14 +4,14 @@ from typing import Any, Dict, List
 from pathlib import Path
 import json
 
-from app.services.observability import store
-
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parents[1]
 DATA_DIR = BASE_DIR / "data"
 
 
 def _load_json(filename: str) -> List[Dict[str, Any]]:
     file_path = DATA_DIR / filename
+    if not file_path.exists():
+        return []
     with open(file_path, "r", encoding="utf-8") as fh:
         return json.load(fh)
 
@@ -24,55 +24,42 @@ POLICIES = _load_json("policies.json")
 
 
 def get_supplier(supplier_id: str) -> Dict[str, Any]:
-    return store.record_tool_call(
-        "get_supplier",
-        lambda: next((supplier for supplier in SUPPLIERS if supplier["supplier_id"] == supplier_id), {}),
-        agent_name="supplier_data",
-        input_summary={"supplier_id": supplier_id},
-    )
+    for supplier in SUPPLIERS:
+        if supplier["supplier_id"] == supplier_id:
+            return supplier
+    return {}
 
 
 def get_supplier_performance(supplier_id: str) -> Dict[str, Any]:
-    return store.record_tool_call(
-        "get_supplier_performance",
-        lambda: next((item for item in _load_json("supplier_performance.json") if item["supplier_id"] == supplier_id), {}),
-        agent_name="performance",
-        input_summary={"supplier_id": supplier_id},
-    )
+    for item in _load_json("supplier_performance.json"):
+        if item["supplier_id"] == supplier_id:
+            return item
+    return {}
 
 
 def get_purchase_order(purchase_order_id: str) -> Dict[str, Any]:
-    return store.record_tool_call(
-        "get_purchase_order",
-        lambda: next((po for po in PURCHASE_ORDERS if po["purchase_order_id"] == purchase_order_id), {}),
-        agent_name="supplier_data",
-        input_summary={"purchase_order_id": purchase_order_id},
-    )
+    for po in PURCHASE_ORDERS:
+        if po["purchase_order_id"] == purchase_order_id:
+            return po
+    return {}
 
 
 def get_shipment(purchase_order_id: str) -> Dict[str, Any]:
-    return store.record_tool_call(
-        "get_shipment",
-        lambda: next((shipment for shipment in SHIPMENTS if shipment["purchase_order_id"] == purchase_order_id), {}),
-        agent_name="shipment",
-        input_summary={"purchase_order_id": purchase_order_id},
-    )
+    for shipment in SHIPMENTS:
+        if shipment["purchase_order_id"] == purchase_order_id:
+            return shipment
+    return {}
 
 
 def get_inventory(product_id: str) -> Dict[str, Any]:
-    return store.record_tool_call(
-        "get_inventory",
-        lambda: next((entry for entry in INVENTORY if entry["product_id"] == product_id), {}),
-        agent_name="inventory",
-        input_summary={"product_id": product_id},
-    )
+    for entry in INVENTORY:
+        if entry["product_id"] == product_id:
+            return entry
+    return {}
 
 
 def get_policy_documents() -> List[Dict[str, Any]]:
-    return store.record_tool_call(
-        "get_policy_documents", lambda: POLICIES, agent_name="rag",
-        input_summary={"document_count": len(POLICIES)},
-    )
+    return POLICIES
 
 
 def get_demo_case(supplier_id: str = "SUP001", po_id: str = "PO10025") -> Dict[str, Any]:

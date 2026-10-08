@@ -1,18 +1,12 @@
 from __future__ import annotations
 
 import os
-import logging
-import time
 from typing import Any, Dict
 
 try:
     from openai import OpenAI
 except Exception:  # pragma: no cover
     OpenAI = None
-
-from app.services.observability import store
-
-logger = logging.getLogger(__name__)
 
 
 class LLMService:
@@ -24,7 +18,6 @@ class LLMService:
     def generate(self, prompt: str, system_prompt: str = "You are a helpful logistics analyst.") -> str:
         if not self.client:
             return self._fallback_response(prompt)
-        started = time.perf_counter()
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -34,36 +27,8 @@ class LLMService:
                 ],
                 temperature=0.2,
             )
-            latency_ms = (time.perf_counter() - started) * 1000
-            usage = response.usage
-            prompt_tokens = usage.prompt_tokens if usage else 0
-            completion_tokens = usage.completion_tokens if usage else 0
-            input_rate = float(os.getenv("LLM_INPUT_COST_PER_MILLION", "0.15"))
-            output_rate = float(os.getenv("LLM_OUTPUT_COST_PER_MILLION", "0.60"))
-            estimated_cost = (prompt_tokens * input_rate + completion_tokens * output_rate) / 1_000_000
-            store.record_llm_call(
-                model_name=self.model,
-                provider="openai",
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
-                latency_ms=latency_ms,
-                status="SUCCESS",
-                estimated_cost=estimated_cost,
-            )
             return response.choices[0].message.content or ""
-        except Exception as error:
-            latency_ms = (time.perf_counter() - started) * 1000
-            logger.exception("LLM request failed; deterministic fallback is being used")
-            store.record_llm_call(
-                model_name=self.model,
-                provider="openai",
-                prompt_tokens=0,
-                completion_tokens=0,
-                latency_ms=latency_ms,
-                status="ERROR",
-                error=type(error).__name__,
-            )
-            store.record_error(type(error).__name__, "LLM request failed.", severity="ERROR")
+        except Exception:
             return self._fallback_response(prompt)
 
     def _fallback_response(self, prompt: str) -> str:

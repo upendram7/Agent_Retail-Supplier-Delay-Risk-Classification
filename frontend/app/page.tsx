@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { apiUrl } from '../lib/api';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function Page() {
   const [supplierId, setSupplierId] = useState('SUP001');
@@ -13,7 +13,7 @@ export default function Page() {
   async function analyzeRisk() {
     setLoading(true);
     try {
-      const res = await fetch(apiUrl('/api/risk/classify'), {
+      const res = await fetch(`${API_URL}/api/risk/classify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -60,16 +60,9 @@ export default function Page() {
     <main className="min-h-screen bg-slate-100 p-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="rounded-xl bg-slate-900 p-6 text-white shadow-xl">
-          <div className="flex flex-wrap items-center justify-between gap-5">
-            <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Retail Supply Chain</p>
-              <h1 className="mt-3 text-3xl font-bold">Supplier Delay Risk Classification</h1>
-              <p className="mt-2 text-slate-300">Multi-agent workflow using supplier data, shipment indicators, inventory impact, and policy retrieval.</p>
-            </div>
-            <nav className="flex flex-wrap gap-2" aria-label="Observability">
-              {['Overview', 'Logs', 'Metrics', 'Traces', 'Drift'].map((item) => <Link key={item} href={item === 'Overview' ? '/' : `/${item.toLowerCase()}`} className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold text-white hover:border-cyan-400 hover:text-cyan-200">{item}</Link>)}
-            </nav>
-          </div>
+          <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Retail Supply Chain</p>
+          <h1 className="mt-3 text-3xl font-bold">Supplier Delay Risk Classification</h1>
+          <p className="mt-2 text-slate-300">Multi-agent workflow using supplier data, shipment indicators, inventory impact, and policy retrieval.</p>
         </header>
 
         <section className="grid gap-6 md:grid-cols-[1fr_2fr]">

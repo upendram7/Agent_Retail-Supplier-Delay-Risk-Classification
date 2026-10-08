@@ -1,7 +1,5 @@
 FROM node:20-alpine
 WORKDIR /app
-ARG BACKEND_API_URL
-ENV BACKEND_API_URL=${BACKEND_API_URL}
 COPY package.json package-lock.json* ./
 RUN npm install
 COPY . .

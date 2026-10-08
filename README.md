@@ -12,8 +12,7 @@ Retail organizations depend on suppliers to deliver goods and materials on time.
 - Shipment and inventory impact assessment
 - RAG-based policy retrieval using ChromaDB
 - Risk classification as LOW / MEDIUM / HIGH
-- Guardrails for supplier-risk scope, validated identifiers, and read-only access
-- Human review proposals for high-risk recommendations; no operational actions are executed
+- Human approval gating for high-risk actions
 - FastAPI backend and Next.js frontend
 - Structured logs and test coverage
 
@@ -88,30 +87,6 @@ The system combines:
 
 The demo computes a score and explicit risk class without claiming the score is a calibrated statistical probability. It distinguishes between model confidence, business risk, and evidence.
 
-## Agent Guardrails
-- Requests are limited to supplier delay risk classification and known supplier/purchase-order records. Unknown, ambiguous, or mismatched identifiers are rejected rather than replaced with demo defaults.
-- The workflow only reads its local supplier, purchase-order, shipment, inventory, and policy data. External/action tools are disabled; action recommendations are proposals and never report success.
-- High-risk recommendations are marked `PENDING` human review. Workflow/approval state is not persisted, so the approval endpoint returns `409` and cannot authorize execution. No operational action is run after an approval request.
-- User instructions and retrieved documents are treated as untrusted data. The policy retriever uses a fixed domain query rather than arbitrary user text.
-- Request/query lengths and ID formats are bounded; unsupported operational-action requests and instruction-override attempts are rejected with explicit API errors.
-
-This demo persists pending approval requests for monitoring, but does not implement reviewer identity, approval decisions, or a downstream action executor. Approval submissions are rejected until those capabilities are implemented and secured.
-
-## Observability
-- The FastAPI backend creates `backend/observability.db` (override with `OBSERVABILITY_DB_PATH`) using SQLite WAL, foreign keys, indexes, and a five-second busy timeout.
-- `/metrics`, `/logs`, `/traces`, and `/drift` are backed by `/api/observability/*`, `/api/metrics/*`, `/api/logs`, `/api/traces`, and `/api/drift` APIs. Data is paginated and time/environment filterable.
-- Seeded synthetic demonstration events are inserted once into SQLite so dashboards are populated at first launch. Subsequent request, agent, tool, RAG, guardrail, approval-request, drift, error, and system measurements are recorded from real execution; no random data is generated for live requests.
-- Every API request receives server-generated request, trace, and session UUIDs exposed as response headers. Trace detail correlates spans with logs, model calls, agent runs, tools, retrieval, errors, and guardrail events. Raw request text and credentials are not stored in observability events.
-- SQLite queries are measured with operation, table, duration, status, and error type; SQL statements and parameter values are not stored. Database metrics include query latency percentiles and slow-query samples without exposing the absolute database path.
-- The SQLite retention cleanup runs at startup and at most hourly, retaining 90 days by default. Configure `OBSERVABILITY_RETENTION_DAYS` to change the positive retention period.
-
-### Deploying the dashboard to Vercel
-- Import this repository in Vercel and set the project's **Root Directory** to `frontend`. The Next.js project configuration is in `frontend/vercel.json`.
-- Configure `BACKEND_API_URL` as the origin of a publicly reachable FastAPI deployment, for example `https://api.example.com` (do not append `/api`). Vercel rewrites same-origin `/api/*` requests to that service, so the browser does not need direct cross-origin API access.
-- Deploy the FastAPI backend separately on a host that supports persistent storage. Its health endpoint must respond at `https://api.example.com/api/health`. Configure its environment variables, including a persistent `OBSERVABILITY_DB_PATH` and `CORS_ORIGINS` if other browser clients will access it directly.
-- After deployment, the dashboard pages are `/logs`, `/metrics`, `/traces`, and `/drift`. Verify the backend through `/api/health` and check these routes on the Vercel domain.
-- Do not use a Vercel deployment URL as `BACKEND_API_URL` unless that deployment also runs the FastAPI API and its persistent SQLite storage.
-
 ## Folder Structure
 ```text
 .
@@ -167,7 +142,6 @@ OPENAI_MODEL=gpt-4o-mini
 API_HOST=0.0.0.0
 API_PORT=8000
 CORS_ORIGINS=http://localhost:3000
-OBSERVABILITY_RETENTION_DAYS=90
 ```
 
 ## Running Locally
@@ -183,19 +157,6 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 cd frontend
 npm run dev
 ```
-
-### Deploy frontend and backend separately
-The frontend sends API requests to `NEXT_PUBLIC_API_URL`. Set this variable in
-the Vercel frontend project's Environment Variables to the backend deployment
-URL, for example:
-```text
-NEXT_PUBLIC_API_URL=https://agent-retail-supplier-delay-risk-classification-xct7-r7pg9ma33.vercel.app
-```
-Redeploy the frontend after changing the variable. The backend deployment must
-allow unauthenticated API access for this demo, and its `CORS_ORIGINS` setting
-must include `https://agent-retail-supplier-delay-risk-cl.vercel.app`.
-Vercel Deployment Protection on the backend must not redirect browser API
-requests to an SSO page.
 
 ### Or use Docker Compose
 ```bash

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import logging
 import os
 import re
 import uuid
@@ -19,13 +18,11 @@ except Exception:  # pragma: no cover
 
 from app.config import settings
 
-logger = logging.getLogger(__name__)
-
 
 class ChromaPolicyStore:
     def __init__(self, collection_name: str = "supplier_policies") -> None:
         self.collection_name = collection_name
-        self._documents: Dict[str, Dict[str, Any]] = {}
+        self._documents: List[Dict[str, Any]] = []
         self.embedding_dimension = 1536
         self._openai_client = None
 
@@ -93,7 +90,7 @@ class ChromaPolicyStore:
                 "content": doc.get("content", ""),
                 "metadata": self._build_metadata(doc),
             }
-            self._documents[str(item["id"])] = item
+            self._documents.append(item)
 
         if self.collection is None:
             return
@@ -111,15 +108,15 @@ class ChromaPolicyStore:
             metas.append(self._build_metadata(doc))
 
         try:
-            self.collection.upsert(documents=texts, ids=ids, embeddings=embeddings, metadatas=metas)
+            self.collection.add(documents=texts, ids=ids, embeddings=embeddings, metadatas=metas)
         except Exception:
-            logger.exception("Chroma policy indexing failed; in-memory retrieval remains available")
+            # Gracefully degrade if Chroma initialization or collection operations fail.
+            pass
 
     def _normalize_results(self, results: Dict[str, Any]) -> List[Dict[str, Any]]:
         ids = results.get("ids", [[]])
         documents = results.get("documents", [[]])
         metadatas = results.get("metadatas", [[]])
-        distances = results.get("distances", [[]])
         if not ids or not documents:
             return []
 
@@ -127,12 +124,10 @@ class ChromaPolicyStore:
         for index in range(len(ids[0])):
             metadata = metadatas[0][index] if len(metadatas[0]) > index else {}
             text = documents[0][index] if len(documents[0]) > index else ""
-            distance = distances[0][index] if distances and len(distances[0]) > index else None
             normalized.append({
                 "id": ids[0][index],
                 "title": metadata.get("title", "Policy"),
                 "content": text,
-                "similarity_score": 1 / (1 + max(float(distance), 0)) if distance is not None else None,
                 "metadata": metadata,
             })
         return normalized
@@ -145,7 +140,7 @@ class ChromaPolicyStore:
         tokens = {token for token in normalized_query.split() if token}
         scored: List[tuple[float, Dict[str, Any]]] = []
 
-        for doc in self._documents.values():
+        for doc in self._documents:
             metadata = doc.get("metadata", {})
             if filter_dict:
                 matched = True
@@ -174,10 +169,9 @@ class ChromaPolicyStore:
                 "id": item["id"],
                 "title": item.get("title", "Policy"),
                 "content": item["content"],
-                "similarity_score": min(score / max(len(tokens) * 2, 1), 1.0),
                 "metadata": item.get("metadata", {}),
             }
-            for score, item in scored[:limit]
+            for _, item in scored[:limit]
         ]
 
     def search(self, query: str, limit: int = 5, filter_dict: Dict[str, Any] | None = None) -> List[Dict[str, Any]]:
